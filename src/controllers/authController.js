@@ -1,0 +1,97 @@
+const jwt = require('jsonwebtoken');
+const Company = require('../models/Company');
+const User = require('../models/User');
+
+const generateToken = (user) => {
+  return jwt.sign(
+    { 
+      id: user.id,
+      userId: user.userId,
+      role: user.role,
+      companyId: user.companyId
+    },
+    process.env.JWT_SECRET || 'your-secret-key',
+    { expiresIn: '24h' }
+  );
+};
+
+exports.register = async (req, res) => {
+  try {
+    const { companyName, ruc, email, userId, password, role } = req.body;
+
+    // Create company
+    const company = await Company.create({
+      companyName,
+      ruc,
+      email
+    });
+
+    // Create user
+    const user = await User.create({
+      userId,
+      password,
+      role,
+      companyId: company.id
+    });
+
+    const token = generateToken(user);
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        userId: user.userId,
+        role: user.role,
+        companyId: user.companyId
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+exports.login = async (req, res) => {
+  try {
+    const { userId, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ where: { userId } });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    // Validate password
+    const isValidPassword = await user.validatePassword(password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid credentials'
+      });
+    }
+
+    const token = generateToken(user);
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        userId: user.userId,
+        role: user.role,
+        companyId: user.companyId
+      }
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      error: error.message
+    });
+  }
+}; 

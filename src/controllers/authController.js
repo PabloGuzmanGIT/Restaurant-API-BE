@@ -47,6 +47,32 @@ exports.register = async (req, res) => {
       }
     });
   } catch (error) {
+    console.error('Registration error:', error);
+    
+    // Handle Sequelize validation errors
+    if (error.name === 'SequelizeValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Validation error',
+        details: error.errors.map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
+
+    // Handle unique constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        error: 'Duplicate entry',
+        details: error.errors.map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
+
     res.status(400).json({
       success: false,
       error: error.message

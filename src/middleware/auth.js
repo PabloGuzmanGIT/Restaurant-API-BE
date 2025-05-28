@@ -16,7 +16,7 @@ exports.protect = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, 'familiaguzman');
     const user = await User.findByPk(decoded.id);
 
     if (!user) {
